@@ -101,6 +101,9 @@ def start_level(level):
         all_sprites.add(pirate)
         pirates.add(pirate)
 
+    # FONT für Levelanzeige vorbereiten
+    font = pygame.font.Font(None, 48)
+
     running = True
     while running:
         clock.tick(FPS)
@@ -119,6 +122,11 @@ def start_level(level):
 
         screen.fill(WHITE)
         all_sprites.draw(screen)
+
+        # Levelanzeige
+        level_text = font.render(f"Level {level}", True, BLACK)
+        screen.blit(level_text, (20, 20))  # Links oben
+
         pygame.display.flip()
 
         # Level geschafft, wenn Ninja ganz rechts rausläuft
