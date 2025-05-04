@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# MacOS
+.DS_Store
+
+# Visual Studio Code
+.vscode/
+
+# Umgebung (falls du später virtualenv benutzt)
+env/
+venv/
