@@ -4,6 +4,10 @@ import sys
 # Initialisierung
 pygame.init()
 
+# Mixer initialisieren für Sound
+pygame.mixer.init()
+jump_sound = pygame.mixer.Sound("assets/sounds/jump.mp3")
+
 # Fenster auf Vollbild setzen
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 SCREEN_WIDTH, SCREEN_HEIGHT = pygame.display.get_surface().get_size()
@@ -40,6 +44,7 @@ class Ninja(pygame.sprite.Sprite):
 
         if keys[pygame.K_SPACE] and self.rect.bottom >= SCREEN_HEIGHT:
             self.velocity_y = self.jump_power
+            jump_sound.play()
 
         self.velocity_y += self.gravity
         self.rect.y += self.velocity_y
