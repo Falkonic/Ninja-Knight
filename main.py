@@ -173,7 +173,7 @@ def start_level(level, lives):
 
         # Levelanzeige
         level_text = font.render(f"Level {level}", True, BLACK)
-        lives_text = font.render(f"Leben: {lives}", True, RED)
+        lives_text = font.render(f"Leben: {lives}", True, (0, 255, 0))
         screen.blit(level_text, (20, 20))
         screen.blit(lives_text, (20, 70))
 
@@ -215,7 +215,7 @@ def main():
     playing = True
     while playing:
         level = 1
-        lives = 3  # NEU: Starte mit 3 Leben
+        lives = 5  # NEU: Starte mit 5 Leben
         max_levels = 10
 
         while level <= max_levels and lives > 0:
