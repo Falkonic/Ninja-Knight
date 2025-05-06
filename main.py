@@ -17,6 +17,7 @@ pygame.display.set_caption("Ninja Knight")
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 # Framerate
 clock = pygame.time.Clock()
@@ -123,7 +124,7 @@ def start_level(level, lives):
     font = pygame.font.Font(None, 48)
 
     running = True
-    hit_cooldown = 0  # Damit man nach einem Treffer kurz unverwundbar ist
+    hit_cooldown = 0  # 1 Sekunde Immunität nach Treffer
 
     while running:
         clock.tick(FPS)
@@ -139,7 +140,7 @@ def start_level(level, lives):
         all_sprites.update()
 
         # Kollisionslogik
-        ninja.on_ground = False  # Standardmäßig erstmal: nicht auf Boden oder Plattform
+        ninja.on_ground = False
 
         if level >= 6:
             ninja.rect.y += 5
@@ -160,9 +161,9 @@ def start_level(level, lives):
         # Treffer durch Piraten
         if hit_cooldown == 0 and pygame.sprite.spritecollide(ninja, pirates, False):
             lives -= 1
-            hit_cooldown = 60  # 1 Sekunde Immunität
+            hit_cooldown = 60
             if lives <= 0:
-                return False, lives  # Game Over
+                return False, lives
 
         if hit_cooldown > 0:
             hit_cooldown -= 1
@@ -171,9 +172,8 @@ def start_level(level, lives):
         screen.fill(WHITE)
         all_sprites.draw(screen)
 
-        # Levelanzeige
         level_text = font.render(f"Level {level}", True, BLACK)
-        lives_text = font.render(f"Leben: {lives}", True, (0, 255, 0))
+        lives_text = font.render(f"Leben: {lives}", True, GREEN)
         screen.blit(level_text, (20, 20))
         screen.blit(lives_text, (20, 70))
 
@@ -210,12 +210,39 @@ def game_over_screen():
                 if event.key == pygame.K_q:
                     return False
 
+# Victory Screen
+def victory_screen():
+    font = pygame.font.Font(None, 74)
+    small_font = pygame.font.Font(None, 36)
+
+    while True:
+        screen.fill(WHITE)
+
+        victory_text = font.render("HERZLICHEN GLÜCKWUNSCH!", True, GREEN)
+        replay_text = small_font.render("Drücke R für Neustart oder Q zum Beenden", True, BLACK)
+
+        screen.blit(victory_text, (SCREEN_WIDTH // 2 - victory_text.get_width() // 2, 200))
+        screen.blit(replay_text, (SCREEN_WIDTH // 2 - replay_text.get_width() // 2, 300))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return True
+                if event.key == pygame.K_q:
+                    return False
+
 # Hauptspiel
 def main():
     playing = True
     while playing:
         level = 1
-        lives = 5  # NEU: Starte mit 5 Leben
+        lives = 5  # Start mit 5 Leben
         max_levels = 10
 
         while level <= max_levels and lives > 0:
@@ -228,9 +255,11 @@ def main():
                 print(f"Game Over in Level {level}!")
 
         if level > max_levels:
-            print("Herzlichen Glückwunsch! Du hast Ninja Knight durchgespielt!")
-
-        playing = game_over_screen()
+            # Spieler hat alle Level geschafft!
+            playing = victory_screen()
+        else:
+            # Spieler ist vorher gestorben
+            playing = game_over_screen()
 
     pygame.quit()
     sys.exit()
