@@ -29,11 +29,12 @@ class Ninja(pygame.sprite.Sprite):
         self.image = pygame.image.load("assets/images/ninja.png").convert_alpha()
         self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect()
-        self.rect.x = 50  # Start links
+        self.rect.x = 50
         self.rect.y = SCREEN_HEIGHT - 100
         self.velocity_y = 0
         self.jump_power = -15
         self.gravity = 0.8
+        self.on_ground = False  # Steht der Ninja?
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -42,16 +43,12 @@ class Ninja(pygame.sprite.Sprite):
         if keys[pygame.K_RIGHT]:
             self.rect.x += 5
 
-        if keys[pygame.K_SPACE] and self.rect.bottom >= SCREEN_HEIGHT:
+        if keys[pygame.K_SPACE] and self.on_ground:
             self.velocity_y = self.jump_power
             jump_sound.play()
 
         self.velocity_y += self.gravity
         self.rect.y += self.velocity_y
-
-        if self.rect.bottom > SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT
-            self.velocity_y = 0
 
 # Piratenklasse
 class Pirate(pygame.sprite.Sprite):
@@ -72,26 +69,37 @@ class Pirate(pygame.sprite.Sprite):
         if abs(self.rect.x - self.start_x) >= self.movement_range:
             self.direction *= -1
 
+# Plattformklasse
+class Platform(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height=20):
+        super().__init__()
+        self.image = pygame.Surface((width, height))
+        self.image.fill((100, 100, 100))  # Grau
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
 # Funktion: Level starten
-def start_level(level):
+def start_level(level, lives):
     all_sprites = pygame.sprite.Group()
     pirates = pygame.sprite.Group()
+    platforms = pygame.sprite.Group()
 
     ninja = Ninja()
     all_sprites.add(ninja)
 
     start_x = 400
     piraten_abstand = 200
-    piraten_pro_reihe = 4  # Neue Reihe nach 4 Piraten
+    piraten_pro_reihe = 4
 
     for i in range(level):
         x = start_x + (i % piraten_pro_reihe) * piraten_abstand
-        y_offset = (i // piraten_pro_reihe) * 100  # jede neue Reihe 100 Pixel höher
-        base_y = SCREEN_HEIGHT  # Start ganz unten
+        y_offset = (i // piraten_pro_reihe) * 100
+        base_y = SCREEN_HEIGHT
         y_position = base_y - y_offset
 
         if y_position < 100:
-            y_position = 100  # Begrenzung: nicht zu hoch!
+            y_position = 100
 
         movement_range = 100 + i * 20
         speed = 2 + i * 0.2
@@ -101,10 +109,22 @@ def start_level(level):
         all_sprites.add(pirate)
         pirates.add(pirate)
 
-    # FONT für Levelanzeige vorbereiten
+    # Plattformen hinzufügen ab Level 6
+    if level >= 6:
+        plat_width = 200
+        plat_y = SCREEN_HEIGHT - 100  # Höhe wie zweite Piratenreihe
+
+        platform1 = Platform(SCREEN_WIDTH // 3 - plat_width // 2, plat_y, plat_width)
+        platform2 = Platform(2 * SCREEN_WIDTH // 3 - plat_width // 2, plat_y, plat_width)
+
+        all_sprites.add(platform1, platform2)
+        platforms.add(platform1, platform2)
+
     font = pygame.font.Font(None, 48)
 
     running = True
+    hit_cooldown = 0  # Damit man nach einem Treffer kurz unverwundbar ist
+
     while running:
         clock.tick(FPS)
 
@@ -113,25 +133,55 @@ def start_level(level):
                 pygame.quit()
                 sys.exit()
 
+        keys = pygame.key.get_pressed()
+        
         # Updates
         all_sprites.update()
 
-        # Kollisionen prüfen
-        if pygame.sprite.spritecollide(ninja, pirates, False):
-            return False  # Game Over
+        # Kollisionslogik
+        ninja.on_ground = False  # Standardmäßig erstmal: nicht auf Boden oder Plattform
 
+        if level >= 6:
+            ninja.rect.y += 5
+            hits = pygame.sprite.spritecollide(ninja, platforms, False)
+            ninja.rect.y -= 5
+
+            if hits:
+                if ninja.velocity_y > 0:
+                    ninja.rect.bottom = hits[0].rect.top
+                    ninja.velocity_y = 0
+                    ninja.on_ground = True
+
+        if ninja.rect.bottom >= SCREEN_HEIGHT:
+            ninja.rect.bottom = SCREEN_HEIGHT
+            ninja.velocity_y = 0
+            ninja.on_ground = True
+
+        # Treffer durch Piraten
+        if hit_cooldown == 0 and pygame.sprite.spritecollide(ninja, pirates, False):
+            lives -= 1
+            hit_cooldown = 60  # 1 Sekunde Immunität
+            if lives <= 0:
+                return False, lives  # Game Over
+
+        if hit_cooldown > 0:
+            hit_cooldown -= 1
+
+        # Bildschirm zeichnen
         screen.fill(WHITE)
         all_sprites.draw(screen)
 
         # Levelanzeige
         level_text = font.render(f"Level {level}", True, BLACK)
-        screen.blit(level_text, (20, 20))  # Links oben
+        lives_text = font.render(f"Leben: {lives}", True, RED)
+        screen.blit(level_text, (20, 20))
+        screen.blit(lives_text, (20, 70))
 
         pygame.display.flip()
 
-        # Level geschafft, wenn Ninja ganz rechts rausläuft
+        # Level geschafft
         if ninja.rect.left > SCREEN_WIDTH:
-            return True
+            return True, lives
 
 # Game Over Screen
 def game_over_screen():
@@ -165,17 +215,17 @@ def main():
     playing = True
     while playing:
         level = 1
+        lives = 3  # NEU: Starte mit 3 Leben
         max_levels = 10
 
-        while level <= max_levels:
+        while level <= max_levels and lives > 0:
             print(f"Level {level} beginnt...")
-            success = start_level(level)
+            success, lives = start_level(level, lives)
             if success:
                 print(f"Level {level} geschafft!")
                 level += 1
             else:
                 print(f"Game Over in Level {level}!")
-                break
 
         if level > max_levels:
             print("Herzlichen Glückwunsch! Du hast Ninja Knight durchgespielt!")
