@@ -36,6 +36,7 @@ class Ninja(pygame.sprite.Sprite):
         self.jump_power = -15
         self.gravity = 0.8
         self.on_ground = False  # Steht der Ninja?
+        self.mask = pygame.mask.from_surface(self.image)  # Für pixelgenaue Kollision
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -64,6 +65,7 @@ class Pirate(pygame.sprite.Sprite):
         self.movement_range = movement_range
         self.speed = speed
         self.direction = 1
+        self.mask = pygame.mask.from_surface(self.image)  # Für pixelgenaue Kollision
 
     def update(self):
         self.rect.x += self.speed * self.direction
@@ -135,7 +137,7 @@ def start_level(level, lives):
                 sys.exit()
 
         keys = pygame.key.get_pressed()
-        
+
         # Updates
         all_sprites.update()
 
@@ -158,8 +160,8 @@ def start_level(level, lives):
             ninja.velocity_y = 0
             ninja.on_ground = True
 
-        # Treffer durch Piraten
-        if hit_cooldown == 0 and pygame.sprite.spritecollide(ninja, pirates, False):
+        # Treffer durch Piraten (jetzt pixelgenau!)
+        if hit_cooldown == 0 and pygame.sprite.spritecollide(ninja, pirates, False, pygame.sprite.collide_mask):
             lives -= 1
             hit_cooldown = 60
             if lives <= 0:
@@ -255,10 +257,8 @@ def main():
                 print(f"Game Over in Level {level}!")
 
         if level > max_levels:
-            # Spieler hat alle Level geschafft!
             playing = victory_screen()
         else:
-            # Spieler ist vorher gestorben
             playing = game_over_screen()
 
     pygame.quit()
